@@ -32,7 +32,6 @@ export function BedFilters({
     { value: 'ALL', label: 'All Statuses' },
     { value: BedStatus.AVAILABLE, label: 'Available' },
     { value: BedStatus.LOCKED, label: 'Locked' },
-    { value: BedStatus.BOOKED, label: 'Booked' },
     { value: BedStatus.OCCUPIED, label: 'Occupied' },
     { value: BedStatus.CLEANING, label: 'Cleaning' },
     { value: BedStatus.MAINTENANCE, label: 'Maintenance' },

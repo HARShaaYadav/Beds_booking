@@ -30,8 +30,9 @@ export function BedStatusBadge({ status, showIcon = true }: BedStatusBadgeProps)
         };
       case BedStatus.BOOKED:
         return {
-          label: 'Booked',
-          color: 'bg-gradient-to-r from-blue-100 to-cyan-100 text-blue-700 border border-blue-200',
+          // Legacy status retained in the database enum for backwards compatibility.
+          label: 'Occupied',
+          color: 'bg-gradient-to-r from-red-100 to-rose-100 text-red-700 border border-red-200',
           icon: (
             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
               <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" />

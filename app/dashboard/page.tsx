@@ -188,7 +188,7 @@ export default function DashboardPage() {
                   <span className="text-gray-700 font-semibold">Active Bookings</span>
                 </div>
                 <span className="text-3xl font-bold text-blue-600 group-hover:scale-110 transition-transform inline-block">
-                  {statistics.locked + statistics.booked}
+                  {statistics.locked + statistics.occupied}
                 </span>
               </div>
             </div>

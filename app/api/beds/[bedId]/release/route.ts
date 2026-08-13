@@ -17,7 +17,7 @@ export async function POST(
       );
     }
 
-    const result = await bedService.makeOccupiedBedAvailable(bedId, user.id);
+    const result = await bedService.sendOccupiedBedToCleaning(bedId, user.id);
     return NextResponse.json(result, { status: result.success ? 200 : 409 });
   } catch (error) {
     console.error('Error releasing occupied bed:', error);
@@ -28,7 +28,7 @@ export async function POST(
       );
     }
     return NextResponse.json(
-      { success: false, message: 'Failed to make bed available.' },
+      { success: false, message: 'Failed to send bed to cleaning.' },
       { status: 500 }
     );
   }

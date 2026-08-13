@@ -8,11 +8,13 @@ interface BedCardProps {
   bed: BedWithDetails;
   onBook?: (bedId: string) => void;
   onRelease?: (bedId: string) => void;
+  onCompleteCleaning?: (bedId: string) => void;
   isBooking?: boolean;
   isReleasing?: boolean;
+  isCompletingCleaning?: boolean;
 }
 
-export function BedCard({ bed, onBook, onRelease, isBooking, isReleasing }: BedCardProps) {
+export function BedCard({ bed, onBook, onRelease, onCompleteCleaning, isBooking, isReleasing, isCompletingCleaning }: BedCardProps) {
   const canBook = bed.status === BedStatus.AVAILABLE && !isBooking;
 
   const getBedTypeConfig = (type: string) => {
@@ -111,7 +113,7 @@ export function BedCard({ bed, onBook, onRelease, isBooking, isReleasing }: BedC
         </button>
       )}
 
-      {!canBook && bed.status !== BedStatus.LOCKED && bed.status !== BedStatus.OCCUPIED && (
+      {!canBook && bed.status !== BedStatus.LOCKED && bed.status !== BedStatus.OCCUPIED && bed.status !== BedStatus.CLEANING && (
         <button
           disabled
           className="w-full bg-gray-200 text-gray-500 py-3 px-4 rounded-lg cursor-not-allowed font-semibold"
@@ -135,7 +137,17 @@ export function BedCard({ bed, onBook, onRelease, isBooking, isReleasing }: BedC
           disabled={isReleasing}
           className="w-full btn-secondary disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {isReleasing ? 'Making available...' : 'Mark as Available'}
+          {isReleasing ? 'Sending to cleaning...' : 'Send to Cleaning'}
+        </button>
+      )}
+
+      {bed.status === BedStatus.CLEANING && onCompleteCleaning && (
+        <button
+          onClick={() => onCompleteCleaning(bed.id)}
+          disabled={isCompletingCleaning}
+          className="w-full btn-success disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {isCompletingCleaning ? 'Completing...' : 'Complete Cleaning & Make Available'}
         </button>
       )}
     </div>

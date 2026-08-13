@@ -2,6 +2,7 @@ import { prisma } from '@/lib/prisma';
 import { BedStatus, BookingStatus } from '@prisma/client';
 import { BedLockResponse } from '@/types/bed';
 import { emitBedStatusChange } from '@/lib/socket';
+import { icuWaitlistService } from '@/services/icuWaitlistService';
 
 export class LockService {
   private readonly LOCK_DURATION_MINUTES = 5;
@@ -183,6 +184,7 @@ export class LockService {
           lockedById: null,
           lockedUntil: null,
         });
+        await icuWaitlistService.notifyNextPatientForAvailableIcuBed(bedId);
       }
 
       return result;

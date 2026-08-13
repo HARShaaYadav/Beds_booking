@@ -2,6 +2,7 @@ import { prisma } from '@/lib/prisma';
 import { BedType, BedStatus, BookingStatus } from '@prisma/client';
 import { BedWithDetails, BedFilters } from '@/types/bed';
 import { emitBedStatusChange } from '@/lib/socket';
+import { icuWaitlistService } from '@/services/icuWaitlistService';
 
 export class BedService {
   async getBeds(filters?: BedFilters): Promise<BedWithDetails[]> {
@@ -116,7 +117,7 @@ export class BedService {
     };
   }
 
-  async makeOccupiedBedAvailable(bedId: string, userId: string): Promise<{ success: boolean; message?: string }> {
+  async sendOccupiedBedToCleaning(bedId: string, userId: string): Promise<{ success: boolean; message?: string }> {
     try {
       const result = await prisma.$transaction(async (tx) => {
         const bed = await tx.bed.findUnique({ where: { id: bedId } });
@@ -126,13 +127,13 @@ export class BedService {
         }
 
         if (bed.status !== BedStatus.OCCUPIED) {
-          return { success: false, message: 'Only occupied beds can be made available.' };
+          return { success: false, message: 'Only occupied beds can be sent to cleaning.' };
         }
 
         await tx.bed.update({
           where: { id: bedId },
           data: {
-            status: BedStatus.AVAILABLE,
+            status: BedStatus.CLEANING,
             patientId: null,
             lockedById: null,
             lockedUntil: null,
@@ -144,11 +145,15 @@ export class BedService {
           data: { status: BookingStatus.COMPLETED, dischargeAt: new Date() },
         });
 
+        await tx.cleaningTask.create({
+          data: { bedId, assignedTo: userId },
+        });
+
         await tx.bedStatusHistory.create({
           data: {
             bedId,
             oldStatus: BedStatus.OCCUPIED,
-            newStatus: BedStatus.AVAILABLE,
+            newStatus: BedStatus.CLEANING,
             changedById: userId,
           },
         });
@@ -159,7 +164,7 @@ export class BedService {
       if (result.success) {
         emitBedStatusChange({
           bedId,
-          status: BedStatus.AVAILABLE,
+          status: BedStatus.CLEANING,
           lockedById: null,
           lockedUntil: null,
         });
@@ -167,8 +172,54 @@ export class BedService {
 
       return result;
     } catch (error) {
-      console.error('Error making occupied bed available:', error);
-      return { success: false, message: 'Failed to make bed available.' };
+      console.error('Error sending occupied bed to cleaning:', error);
+      return { success: false, message: 'Failed to send bed to cleaning.' };
+    }
+  }
+
+  async completeCleaningForBed(bedId: string, userId: string): Promise<{ success: boolean; message?: string }> {
+    try {
+      const result = await prisma.$transaction(async (tx) => {
+        const bed = await tx.bed.findUnique({ where: { id: bedId } });
+        if (!bed) return { success: false, message: 'Bed not found.' };
+        if (bed.status !== BedStatus.CLEANING) {
+          return { success: false, message: 'Only beds in cleaning can be made available.' };
+        }
+
+        const task = await tx.cleaningTask.findFirst({
+          where: { bedId, status: { in: ['PENDING', 'IN_PROGRESS'] } },
+          orderBy: { createdAt: 'desc' },
+        });
+        if (!task) return { success: false, message: 'No active cleaning task was found for this bed.' };
+
+        const completedAt = new Date();
+        await tx.cleaningTask.update({
+          where: { id: task.id },
+          data: { status: 'COMPLETED', completedAt },
+        });
+        await tx.bed.update({
+          where: { id: bedId },
+          data: { status: BedStatus.AVAILABLE },
+        });
+        await tx.bedStatusHistory.create({
+          data: {
+            bedId,
+            oldStatus: BedStatus.CLEANING,
+            newStatus: BedStatus.AVAILABLE,
+            changedById: userId,
+          },
+        });
+        return { success: true };
+      });
+
+      if (result.success) {
+        emitBedStatusChange({ bedId, status: BedStatus.AVAILABLE, lockedById: null, lockedUntil: null });
+        await icuWaitlistService.notifyNextPatientForAvailableIcuBed(bedId);
+      }
+      return result;
+    } catch (error) {
+      console.error('Error completing cleaning:', error);
+      return { success: false, message: 'Failed to complete cleaning.' };
     }
   }
 
@@ -228,6 +279,14 @@ export class BedService {
           },
         });
       });
+
+      emitBedStatusChange({
+        bedId: bed.id,
+        status: BedStatus.AVAILABLE,
+        lockedById: null,
+        lockedUntil: null,
+      });
+      await icuWaitlistService.notifyNextPatientForAvailableIcuBed(bed.id);
     }
   }
 }

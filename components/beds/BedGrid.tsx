@@ -7,11 +7,13 @@ interface BedGridProps {
   beds: BedWithDetails[];
   onBook?: (bedId: string) => void;
   onRelease?: (bedId: string) => void;
+  onCompleteCleaning?: (bedId: string) => void;
   isBooking?: boolean;
   isReleasing?: boolean;
+  isCompletingCleaning?: boolean;
 }
 
-export function BedGrid({ beds, onBook, onRelease, isBooking, isReleasing }: BedGridProps) {
+export function BedGrid({ beds, onBook, onRelease, onCompleteCleaning, isBooking, isReleasing, isCompletingCleaning }: BedGridProps) {
   if (beds.length === 0) {
     return (
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
@@ -28,8 +30,10 @@ export function BedGrid({ beds, onBook, onRelease, isBooking, isReleasing }: Bed
           bed={bed}
           onBook={onBook}
           onRelease={onRelease}
+          onCompleteCleaning={onCompleteCleaning}
           isBooking={isBooking}
           isReleasing={isReleasing}
+          isCompletingCleaning={isCompletingCleaning}
         />
       ))}
     </div>

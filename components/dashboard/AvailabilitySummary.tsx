@@ -4,7 +4,6 @@ interface BedStatistics {
   total: number;
   available: number;
   locked: number;
-  booked: number;
   occupied: number;
   cleaning: number;
   maintenance: number;
@@ -50,17 +49,6 @@ export function AvailabilitySummary({ statistics }: AvailabilitySummaryProps) {
       ),
     },
     {
-      label: 'Booked',
-      value: statistics.booked,
-      color: 'from-blue-600 to-cyan-600',
-      bgColor: 'from-blue-50 to-cyan-50',
-      icon: (
-        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-        </svg>
-      ),
-    },
-    {
       label: 'Occupied',
       value: statistics.occupied,
       color: 'from-red-600 to-rose-600',
@@ -97,7 +85,7 @@ export function AvailabilitySummary({ statistics }: AvailabilitySummaryProps) {
   ];
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
+    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
       {stats.map((stat, index) => (
         <div
           key={stat.label}

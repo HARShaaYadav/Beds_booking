@@ -69,3 +69,15 @@ export function emitBedBooked(data: {
     io.emit('bed-booked', data);
   }
 }
+
+export function emitIcuBedAvailable(data: {
+  bedId: string;
+  bedNumber: string;
+  entryId: string;
+  userId: string;
+  notificationId: string;
+}) {
+  if (io) {
+    io.emit('icu-bed-available', data);
+  }
+}

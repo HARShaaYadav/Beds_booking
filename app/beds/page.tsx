@@ -15,6 +15,7 @@ export default function BedsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isBooking, setIsBooking] = useState(false);
   const [isReleasing, setIsReleasing] = useState(false);
+  const [isCompletingCleaning, setIsCompletingCleaning] = useState(false);
   const [selectedType, setSelectedType] = useState<BedType | 'ALL'>('ALL');
   const [selectedStatus, setSelectedStatus] = useState<BedStatus | 'ALL'>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
@@ -105,7 +106,7 @@ export default function BedsPage() {
   };
 
   const handleReleaseBed = async (bedId: string) => {
-    if (isReleasing || !confirm('Mark this occupied bed as available?')) return;
+    if (isReleasing || !confirm('Send this occupied bed to cleaning?')) return;
 
     setIsReleasing(true);
     try {
@@ -115,13 +116,29 @@ export default function BedsPage() {
       if (data.success) {
         await fetchBeds();
       } else {
-        alert(data.message || 'Failed to make bed available.');
+        alert(data.message || 'Failed to send bed to cleaning.');
       }
     } catch (error) {
       console.error('Error releasing bed:', error);
-      alert('Failed to make bed available.');
+      alert('Failed to send bed to cleaning.');
     } finally {
       setIsReleasing(false);
+    }
+  };
+
+  const handleCompleteCleaning = async (bedId: string) => {
+    if (isCompletingCleaning || !confirm('Confirm this bed has been cleaned and is ready to become available?')) return;
+    setIsCompletingCleaning(true);
+    try {
+      const response = await fetch(`/api/beds/${bedId}/cleaning/complete`, { method: 'POST' });
+      const data = await response.json();
+      if (data.success) await fetchBeds();
+      else alert(data.message || 'Failed to complete cleaning.');
+    } catch (error) {
+      console.error('Error completing cleaning:', error);
+      alert('Failed to complete cleaning.');
+    } finally {
+      setIsCompletingCleaning(false);
     }
   };
 
@@ -161,8 +178,10 @@ export default function BedsPage() {
         beds={filteredBeds}
         onBook={handleBookBed}
         onRelease={handleReleaseBed}
+        onCompleteCleaning={handleCompleteCleaning}
         isBooking={isBooking}
         isReleasing={isReleasing}
+        isCompletingCleaning={isCompletingCleaning}
       />
     </div>
   );
