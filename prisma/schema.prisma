@@ -1,0 +1,148 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  RECEPTIONIST
+  DOCTOR
+  PATIENT
+}
+
+enum BedType {
+  GENERAL
+  ICU
+  EMERGENCY
+  PRIVATE
+  ISOLATION
+}
+
+enum BedStatus {
+  AVAILABLE
+  LOCKED
+  BOOKED
+  OCCUPIED
+  CLEANING
+  MAINTENANCE
+}
+
+enum BookingStatus {
+  LOCKED
+  CONFIRMED
+  CANCELLED
+  EXPIRED
+  COMPLETED
+}
+
+model Hospital {
+  id        String   @id @default(uuid())
+  name      String
+  address   String
+  phone     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  beds      Bed[]
+}
+
+model User {
+  id           String   @id @default(uuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         UserRole
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  bookings           Booking[]
+  lockedBeds         Bed[]              @relation("LockedBy")
+  bedStatusChanges   BedStatusHistory[]
+}
+
+model Patient {
+  id          String   @id @default(uuid())
+  name        String
+  phone       String
+  dateOfBirth DateTime
+  gender      String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  bookings    Booking[]
+  beds        Bed[]
+}
+
+model Bed {
+  id          String     @id @default(uuid())
+  hospitalId  String
+  bedNumber   String
+  bedType     BedType
+  ward        String
+  floor       Int
+  status      BedStatus  @default(AVAILABLE)
+  lockedById  String?
+  lockedUntil DateTime?
+  patientId   String?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  
+  hospital    Hospital   @relation(fields: [hospitalId], references: [id])
+  lockedBy    User?      @relation("LockedBy", fields: [lockedById], references: [id])
+  patient     Patient?   @relation(fields: [patientId], references: [id])
+  
+  bookings    Booking[]
+  statusHistory BedStatusHistory[]
+  
+  @@unique([hospitalId, bedNumber])
+  @@index([hospitalId])
+  @@index([status])
+  @@index([bedType])
+  @@index([lockedUntil])
+  @@index([patientId])
+}
+
+model Booking {
+  id            String        @id @default(uuid())
+  bedId         String
+  patientId     String?
+  bookedById    String
+  status        BookingStatus
+  lockExpiresAt DateTime?
+  bookedAt      DateTime      @default(now())
+  admissionAt   DateTime?
+  dischargeAt   DateTime?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  
+  bed           Bed           @relation(fields: [bedId], references: [id])
+  patient       Patient?      @relation(fields: [patientId], references: [id])
+  bookedBy      User          @relation(fields: [bookedById], references: [id])
+  
+  @@index([bedId])
+  @@index([patientId])
+  @@index([bookedById])
+  @@index([status])
+}
+
+model BedStatusHistory {
+  id          String    @id @default(uuid())
+  bedId       String
+  oldStatus   BedStatus
+  newStatus   BedStatus
+  changedById String
+  createdAt   DateTime  @default(now())
+  
+  bed         Bed       @relation(fields: [bedId], references: [id])
+  changedBy   User      @relation(fields: [changedById], references: [id])
+  
+  @@index([bedId])
+  @@index([createdAt])
+}

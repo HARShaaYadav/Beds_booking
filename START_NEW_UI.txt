@@ -1,0 +1,21 @@
+========================================
+START YOUR NEW UI
+========================================
+
+Good news! Port 3000 is already free.
+
+Just run this command:
+
+npm run dev
+
+Then open your browser to:
+http://localhost:3000
+
+And press Ctrl+Shift+R to hard refresh!
+
+========================================
+
+Your beautiful new UI is ready! 🎉
+
+Socket.IO is already running on port 3001 ✓
+Now just start Next.js on port 3000 ✓
