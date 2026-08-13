@@ -2,6 +2,14 @@
 
 import { useEffect, useState } from 'react';
 import { AvailabilitySummary } from '@/components/dashboard/AvailabilitySummary';
+import dynamic from 'next/dynamic';
+
+const OccupancyChart = dynamic(() => import('@/components/charts/OccupancyChart').then(m => m.OccupancyChart), { ssr: false });
+const ICUUtilizationChart = dynamic(() => import('@/components/charts/ICUUtilizationChart').then(m => m.ICUUtilizationChart), { ssr: false });
+const AvgLengthOfStayChart = dynamic(() => import('@/components/charts/AvgLengthOfStayChart').then(m => m.AvgLengthOfStayChart), { ssr: false });
+const TurnaroundChart = dynamic(() => import('@/components/charts/TurnaroundChart').then(m => m.TurnaroundChart), { ssr: false });
+const PeakHoursChart = dynamic(() => import('@/components/charts/PeakHoursChart').then(m => m.PeakHoursChart), { ssr: false });
+const CancellationRateChart = dynamic(() => import('@/components/charts/CancellationRateChart').then(m => m.CancellationRateChart), { ssr: false });
 import { getSocket } from '@/components/realtime/LiveConnectionStatus';
 
 interface BedStatistics {
@@ -25,6 +33,7 @@ export default function DashboardPage() {
     maintenance: 0,
   });
   const [isLoading, setIsLoading] = useState(true);
+  const [analytics, setAnalytics] = useState<any>(null);
 
   const fetchStatistics = async () => {
     try {
@@ -43,6 +52,16 @@ export default function DashboardPage() {
 
   useEffect(() => {
     fetchStatistics();
+    // fetch analytics
+    (async function(){
+      try{
+        const res = await fetch('/api/analytics');
+        const data = await res.json();
+        if(data.success) setAnalytics(data.metrics);
+      }catch(e){
+        console.error('Failed to fetch analytics', e);
+      }
+    })();
 
     // Set up real-time updates
     const socket = getSocket();
@@ -92,6 +111,36 @@ export default function DashboardPage() {
       </div>
 
       <AvailabilitySummary statistics={statistics} />
+
+      {/* Analytics Charts */}
+      <div className="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {analytics && (
+          <>
+            <div className="col-span-1">
+              <OccupancyChart occupancyRate={analytics.occupancyRate} />
+            </div>
+            <div className="col-span-1">
+              <ICUUtilizationChart icuUtilization={analytics.icuUtilization} />
+            </div>
+            <div className="col-span-1">
+              <AvgLengthOfStayChart avgHours={analytics.avgLengthOfStayHours} />
+            </div>
+          </>
+        )}
+      </div>
+
+      <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+        {analytics && (
+          <>
+            <TurnaroundChart avgTurnaroundHours={analytics.avgTurnaroundHours} />
+            <PeakHoursChart peakHours={analytics.peakHours} />
+          </>
+        )}
+      </div>
+
+      <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+        {analytics && <CancellationRateChart cancellationRate={analytics.cancellationRate} />}
+      </div>
 
       <div className="mt-12 grid md:grid-cols-2 gap-8">
         {/* Quick Actions Section */}

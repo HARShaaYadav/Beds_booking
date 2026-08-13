@@ -1,12 +1,21 @@
 'use client';
 
-import { FormEvent, useState } from 'react';
+import { FormEvent, useEffect, useState } from 'react';
 import { signIn } from 'next-auth/react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 
 export default function LoginPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
+  const [callbackUrl, setCallbackUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      setCallbackUrl(params.get('callbackUrl'));
+    } catch {
+      setCallbackUrl(null);
+    }
+  }, []);
   const [email, setEmail] = useState('receptionist@hospital.com');
   const [password, setPassword] = useState('reception123');
   const [error, setError] = useState('');
@@ -29,8 +38,7 @@ export default function LoginPage() {
         return;
       }
 
-      const callbackUrl = searchParams.get('callbackUrl');
-      router.push(callbackUrl?.startsWith('/') ? callbackUrl : '/dashboard');
+      router.push(callbackUrl && callbackUrl.startsWith('/') ? callbackUrl : '/dashboard');
       router.refresh();
     } catch {
       setError('Unable to sign in. Please try again.');
