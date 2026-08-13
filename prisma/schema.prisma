@@ -88,6 +88,28 @@ enum NotificationType {
   ICU_BED_AVAILABLE
 }
 
+enum NotificationChannel {
+  SMS
+  EMAIL
+  WHATSAPP
+  PUSH
+}
+
+enum NotificationEventType {
+  BED_LOCKED
+  LOCK_EXPIRING
+  BOOKING_CONFIRMED
+  BED_ASSIGNED
+  DISCHARGE_COMPLETED
+}
+
+enum NotificationJobStatus {
+  PENDING
+  PROCESSING
+  SENT
+  FAILED
+}
+
 model Hospital {
   id        String   @id @default(uuid())
   name      String
@@ -119,6 +141,8 @@ model User {
   sessions           Session[]
   icuWaitlistEntries ICUWaitlistEntry[]
   notifications      Notification[]
+  notificationJobs   NotificationJob[]
+  pushSubscriptions  PushSubscription[]
 }
 
 model Session {
@@ -335,6 +359,44 @@ model Notification {
   @@index([userId, readAt])
   @@index([waitlistEntryId])
   @@index([createdAt])
+}
+
+model NotificationJob {
+  id          String                @id @default(uuid())
+  userId      String?
+  channel     NotificationChannel
+  eventType   NotificationEventType
+  recipient   String
+  subject     String?
+  message     String
+  payload     Json?
+  status      NotificationJobStatus @default(PENDING)
+  attempts    Int                   @default(0)
+  scheduledAt DateTime              @default(now())
+  processedAt DateTime?
+  lastError   String?
+  createdAt   DateTime              @default(now())
+  updatedAt   DateTime              @updatedAt
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([status, scheduledAt])
+  @@index([userId])
+  @@index([eventType])
+}
+
+model PushSubscription {
+  id        String   @id @default(uuid())
+  userId    String
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 model BedStatusHistory {

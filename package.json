@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "next lint",
     "socket": "node server.js",
+    "notifications:worker": "node -r esbuild-register scripts/notification-worker.ts",
     "test": "vitest",
     "test:ui": "vitest --ui",
     "test:e2e": "playwright test",

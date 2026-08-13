@@ -3,6 +3,7 @@ import { BedStatus, BookingStatus, Prisma } from '@prisma/client';
 import { BookingWithDetails, ConfirmBookingResponse } from '@/types/booking';
 import { emitBedStatusChange } from '@/lib/socket';
 import { enqueueAuditLog } from '@/lib/queue';
+import { notificationService } from '@/services/notificationService';
 
 export class BookingService {
   async confirmBooking(
@@ -19,6 +20,28 @@ export class BookingService {
             bed: true,
           },
         });
+
+        // Debug logging to help diagnose failed confirmations
+        try {
+          console.debug('confirmBooking: fetched booking', {
+            bookingId,
+            userId,
+            booking: booking ? {
+              id: booking.id,
+              bookedById: booking.bookedById,
+              status: booking.status,
+              lockExpiresAt: booking.lockExpiresAt,
+              bedId: booking.bedId,
+            } : null,
+            bed: booking?.bed ? {
+              id: booking.bed.id,
+              status: booking.bed.status,
+              lockedById: booking.bed.lockedById,
+            } : null,
+          });
+        } catch (logErr) {
+          console.warn('confirmBooking: failed to log booking debug info', logErr);
+        }
 
         if (!booking) {
           return { success: false, message: 'Booking not found.' };
@@ -108,11 +131,20 @@ export class BookingService {
             lockedUntil: null,
           });
         }
+
+        // Send notifications but do not let notification failures block confirmation
+        try {
+          await notificationService.notifyBookingConfirmed(bookingId);
+        } catch (notifyErr) {
+          console.error('Failed to send booking confirmation notification:', notifyErr);
+        }
       }
 
       return result;
     } catch (error) {
-      return { success: false, message: 'Failed to confirm booking.' };
+      console.error('Error in BookingService.confirmBooking:', error);
+      const message = error instanceof Error ? error.message : 'Failed to confirm booking.';
+      return { success: false, message };
     }
   }
 

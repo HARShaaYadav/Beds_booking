@@ -3,6 +3,7 @@ import { BedStatus, BookingStatus } from '@prisma/client';
 import { BedLockResponse } from '@/types/bed';
 import { emitBedStatusChange } from '@/lib/socket';
 import { icuWaitlistService } from '@/services/icuWaitlistService';
+import { notificationService } from '@/services/notificationService';
 
 export class LockService {
   private readonly LOCK_DURATION_MINUTES = 5;
@@ -110,6 +111,13 @@ export class LockService {
           lockedById: userId,
           lockedUntil: lockExpiresAt,
         });
+        // Delivery is asynchronous and must never turn a completed bed lock into a failed booking.
+        try {
+          const bed = await prisma.bed.findUnique({ where: { id: result.bedId }, select: { bedNumber: true } });
+          if (bed) await notificationService.notifyBedLocked(userId, bed.bedNumber, lockExpiresAt);
+        } catch (notificationError) {
+          console.error('Failed to enqueue bed-lock notifications:', notificationError);
+        }
       }
 
       return result;

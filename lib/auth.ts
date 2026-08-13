@@ -32,12 +32,28 @@ export async function getCurrentUserId(): Promise<string> {
   if (!session?.user) {
     throw new Error('User not authenticated');
   }
-  // NextAuth v4 doesn't have id by default, use email as fallback
-  const userId = (session.user as any).id || (session.user as any).email;
-  if (!userId) {
+  // NextAuth session may not expose the user's DB id. Prefer id, otherwise
+  // resolve the user record by email to obtain the canonical id.
+  const sessionUser: any = session.user;
+  if (sessionUser.id) {
+    return sessionUser.id;
+  }
+
+  const email: string | undefined = sessionUser.email;
+  if (!email) {
     throw new Error('User ID not found in session');
   }
-  return userId;
+
+  const user = await prisma.user.findUnique({
+    where: { email },
+    select: { id: true },
+  });
+
+  if (!user) {
+    throw new Error('User not found');
+  }
+
+  return user.id;
 }
 
 /**

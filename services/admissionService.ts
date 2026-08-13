@@ -3,6 +3,7 @@ import { BedStatus, AdmissionStatus, Prisma } from '@prisma/client';
 import { createChildLogger } from '@/lib/logger';
 import { enqueueAuditLog, enqueueCleaning } from '@/lib/queue';
 import { emitBedStatusChange } from '@/lib/socket';
+import { notificationService } from '@/services/notificationService';
 
 const logger = createChildLogger('admission-service');
 
@@ -243,6 +244,7 @@ export class AdmissionService {
             lockedUntil: null,
           });
         }
+        await notificationService.notifyDischargeCompleted(admissionId);
       }
 
       return result;
