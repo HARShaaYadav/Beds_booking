@@ -7,9 +7,6 @@ import { BookingTimer } from '@/components/booking/BookingTimer';
 import { BookingForm } from '@/components/booking/BookingForm';
 import { Patient } from '@/types/patient';
 
-// Mock user ID - in production, this would come from authentication
-const CURRENT_USER_ID = 'mock-user-id';
-
 export default function BookingPage() {
   const router = useRouter();
   const params = useParams();
@@ -114,7 +111,6 @@ export default function BookingPage() {
         },
         body: JSON.stringify({
           patientId: selectedPatient.id,
-          userId: CURRENT_USER_ID,
         }),
       });
 
@@ -146,7 +142,6 @@ export default function BookingPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ userId: CURRENT_USER_ID }),
       });
 
       const data = await response.json();

@@ -6,10 +6,12 @@ import { BedCard } from './BedCard';
 interface BedGridProps {
   beds: BedWithDetails[];
   onBook?: (bedId: string) => void;
+  onRelease?: (bedId: string) => void;
   isBooking?: boolean;
+  isReleasing?: boolean;
 }
 
-export function BedGrid({ beds, onBook, isBooking }: BedGridProps) {
+export function BedGrid({ beds, onBook, onRelease, isBooking, isReleasing }: BedGridProps) {
   if (beds.length === 0) {
     return (
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
@@ -25,7 +27,9 @@ export function BedGrid({ beds, onBook, isBooking }: BedGridProps) {
           key={bed.id}
           bed={bed}
           onBook={onBook}
+          onRelease={onRelease}
           isBooking={isBooking}
+          isReleasing={isReleasing}
         />
       ))}
     </div>

@@ -15,6 +15,7 @@ enum UserRole {
   RECEPTIONIST
   DOCTOR
   PATIENT
+  NURSE
 }
 
 enum BedType {
@@ -42,6 +43,18 @@ enum BookingStatus {
   COMPLETED
 }
 
+enum AdmissionStatus {
+  PENDING
+  ADMITTED
+  DISCHARGED
+}
+
+enum CleaningTaskStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+}
+
 model Hospital {
   id        String   @id @default(uuid())
   name      String
@@ -62,9 +75,25 @@ model User {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
   
-  bookings           Booking[]
-  lockedBeds         Bed[]              @relation("LockedBy")
-  bedStatusChanges   BedStatusHistory[]
+  bookings                  Booking[]
+  lockedBeds                Bed[]              @relation("LockedBy")
+  bedStatusChanges          BedStatusHistory[]
+  admissions                Admission[]
+  cleaningTasks             CleaningTask[]
+  auditLogs                 AuditLog[]
+  sessions                  Session[]
+}
+
+model Session {
+  id        String   @id
+  sessionToken String @unique
+  userId    String
+  expires   DateTime
+  createdAt DateTime @default(now())
+  
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
 }
 
 model Patient {
@@ -78,6 +107,7 @@ model Patient {
   
   bookings    Booking[]
   beds        Bed[]
+  admissions  Admission[]
 }
 
 model Bed {
@@ -100,6 +130,8 @@ model Bed {
   
   bookings    Booking[]
   statusHistory BedStatusHistory[]
+  admissions  Admission[]
+  cleaningTasks CleaningTask[]
   
   @@unique([hospitalId, bedNumber])
   @@index([hospitalId])
@@ -126,10 +158,53 @@ model Booking {
   patient       Patient?      @relation(fields: [patientId], references: [id])
   bookedBy      User          @relation(fields: [bookedById], references: [id])
   
+  admission     Admission?
+  
   @@index([bedId])
   @@index([patientId])
   @@index([bookedById])
   @@index([status])
+}
+
+model Admission {
+  id            String           @id @default(uuid())
+  bookingId     String           @unique
+  bedId         String
+  patientId     String
+  admittedById  String
+  admittedAt    DateTime         @default(now())
+  dischargedAt  DateTime?
+  status        AdmissionStatus  @default(ADMITTED)
+  notes         String?
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+  
+  booking       Booking          @relation(fields: [bookingId], references: [id])
+  bed           Bed              @relation(fields: [bedId], references: [id])
+  patient       Patient          @relation(fields: [patientId], references: [id])
+  admittedBy    User             @relation(fields: [admittedById], references: [id])
+  
+  @@index([bedId])
+  @@index([patientId])
+  @@index([status])
+  @@index([admittedAt])
+}
+
+model CleaningTask {
+  id            String              @id @default(uuid())
+  bedId         String
+  assignedTo    String
+  status        CleaningTaskStatus  @default(PENDING)
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+  completedAt   DateTime?
+  
+  bed           Bed                 @relation(fields: [bedId], references: [id])
+  assignee      User                @relation(fields: [assignedTo], references: [id])
+  
+  @@index([bedId])
+  @@index([status])
+  @@index([assignedTo])
 }
 
 model BedStatusHistory {
@@ -144,5 +219,22 @@ model BedStatusHistory {
   changedBy   User      @relation(fields: [changedById], references: [id])
   
   @@index([bedId])
+  @@index([createdAt])
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String?
+  action    String
+  resource  String
+  resourceId String
+  metadata  String?
+  createdAt DateTime @default(now())
+  
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  
+  @@index([userId])
+  @@index([action])
+  @@index([resource])
   @@index([createdAt])
 }

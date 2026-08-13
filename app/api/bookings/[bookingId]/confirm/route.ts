@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { bookingService } from '@/services/bookingService';
 import { z } from 'zod';
+import { getCurrentUser } from '@/lib/auth';
 
 const confirmRequestSchema = z.object({
   patientId: z.string().min(1, 'Patient ID is required'),
-  userId: z.string().min(1, 'User ID is required'),
 });
 
 export async function POST(
@@ -23,11 +23,12 @@ export async function POST(
       );
     }
 
-    const { patientId, userId } = validation.data;
+    const { patientId } = validation.data;
+    const user = await getCurrentUser();
     const result = await bookingService.confirmBooking(
       bookingId,
       patientId,
-      userId
+      user.id
     );
 
     if (!result.success) {
@@ -37,6 +38,12 @@ export async function POST(
     return NextResponse.json(result);
   } catch (error) {
     console.error('Error confirming booking:', error);
+    if (error instanceof Error && error.message === 'User not authenticated') {
+      return NextResponse.json(
+        { success: false, message: 'Please sign in before confirming a booking.' },
+        { status: 401 }
+      );
+    }
     return NextResponse.json(
       { success: false, message: 'Failed to confirm booking' },
       { status: 500 }

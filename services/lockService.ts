@@ -66,7 +66,9 @@ export class LockService {
         if (updatedBed.count === 0) {
           return {
             success: false,
-            message: 'Bed is no longer available.',
+            message: bed.status === BedStatus.LOCKED
+              ? 'This bed is currently reserved by another user. Please choose another available bed.'
+              : 'Bed is no longer available. Please choose another available bed.',
           };
         }
 

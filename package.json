@@ -8,6 +8,10 @@
     "start": "next start",
     "lint": "next lint",
     "socket": "node server.js",
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",
@@ -28,8 +32,12 @@
     "clsx": "^2.1.1",
     "date-fns": "^4.4.0",
     "esbuild-register": "^3.6.0",
+    "ioredis": "^5.3.5",
     "lucide-react": "^1.31.0",
     "next": "^16.3.0",
+    "next-auth": "^4.24.5",
+    "pino": "^8.17.2",
+    "pino-pretty": "^10.3.1",
     "prisma": "^5.22.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
@@ -39,15 +47,23 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@playwright/test": "^1.40.1",
+    "@testing-library/jest-dom": "^6.1.5",
+    "@testing-library/react": "^14.1.2",
     "@types/bcryptjs": "^2.4.6",
+    "@types/bull": "^3.15.9",
     "@types/node": "^26.2.0",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.4",
+    "@vitejs/plugin-react": "^4.2.1",
+    "@vitest/ui": "^1.1.0",
     "autoprefixer": "^10.5.4",
     "eslint": "^9.39.5",
     "eslint-config-next": "^16.3.0",
+    "happy-dom": "^12.10.3",
     "postcss": "^8.5.26",
     "tailwindcss": "^3.4.19",
-    "typescript": "^6.0.3"
+    "typescript": "^6.0.3",
+    "vitest": "^1.1.0"
   }
 }

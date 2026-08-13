@@ -8,15 +8,13 @@ import { BedGrid } from '@/components/beds/BedGrid';
 import { BedFilters } from '@/components/beds/BedFilters';
 import { getSocket } from '@/components/realtime/LiveConnectionStatus';
 
-// Mock user ID - in production, this would come from authentication
-const CURRENT_USER_ID = 'mock-user-id';
-
 export default function BedsPage() {
   const router = useRouter();
   const [beds, setBeds] = useState<BedWithDetails[]>([]);
   const [filteredBeds, setFilteredBeds] = useState<BedWithDetails[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isBooking, setIsBooking] = useState(false);
+  const [isReleasing, setIsReleasing] = useState(false);
   const [selectedType, setSelectedType] = useState<BedType | 'ALL'>('ALL');
   const [selectedStatus, setSelectedStatus] = useState<BedStatus | 'ALL'>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
@@ -89,7 +87,6 @@ export default function BedsPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ userId: CURRENT_USER_ID }),
       });
 
       const data = await response.json();
@@ -104,6 +101,27 @@ export default function BedsPage() {
       alert('Failed to lock bed. Please try again.');
     } finally {
       setIsBooking(false);
+    }
+  };
+
+  const handleReleaseBed = async (bedId: string) => {
+    if (isReleasing || !confirm('Mark this occupied bed as available?')) return;
+
+    setIsReleasing(true);
+    try {
+      const response = await fetch(`/api/beds/${bedId}/release`, { method: 'POST' });
+      const data = await response.json();
+
+      if (data.success) {
+        await fetchBeds();
+      } else {
+        alert(data.message || 'Failed to make bed available.');
+      }
+    } catch (error) {
+      console.error('Error releasing bed:', error);
+      alert('Failed to make bed available.');
+    } finally {
+      setIsReleasing(false);
     }
   };
 
@@ -139,7 +157,13 @@ export default function BedsPage() {
         onSearchChange={setSearchQuery}
       />
 
-      <BedGrid beds={filteredBeds} onBook={handleBookBed} isBooking={isBooking} />
+      <BedGrid
+        beds={filteredBeds}
+        onBook={handleBookBed}
+        onRelease={handleReleaseBed}
+        isBooking={isBooking}
+        isReleasing={isReleasing}
+      />
     </div>
   );
 }

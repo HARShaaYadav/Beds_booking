@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { BedType, BedStatus, BookingStatus } from '@prisma/client';
 import { BedWithDetails, BedFilters } from '@/types/bed';
+import { emitBedStatusChange } from '@/lib/socket';
 
 export class BedService {
   async getBeds(filters?: BedFilters): Promise<BedWithDetails[]> {
@@ -113,6 +114,62 @@ export class BedService {
       cleaning,
       maintenance,
     };
+  }
+
+  async makeOccupiedBedAvailable(bedId: string, userId: string): Promise<{ success: boolean; message?: string }> {
+    try {
+      const result = await prisma.$transaction(async (tx) => {
+        const bed = await tx.bed.findUnique({ where: { id: bedId } });
+
+        if (!bed) {
+          return { success: false, message: 'Bed not found.' };
+        }
+
+        if (bed.status !== BedStatus.OCCUPIED) {
+          return { success: false, message: 'Only occupied beds can be made available.' };
+        }
+
+        await tx.bed.update({
+          where: { id: bedId },
+          data: {
+            status: BedStatus.AVAILABLE,
+            patientId: null,
+            lockedById: null,
+            lockedUntil: null,
+          },
+        });
+
+        await tx.booking.updateMany({
+          where: { bedId, status: BookingStatus.CONFIRMED },
+          data: { status: BookingStatus.COMPLETED, dischargeAt: new Date() },
+        });
+
+        await tx.bedStatusHistory.create({
+          data: {
+            bedId,
+            oldStatus: BedStatus.OCCUPIED,
+            newStatus: BedStatus.AVAILABLE,
+            changedById: userId,
+          },
+        });
+
+        return { success: true };
+      });
+
+      if (result.success) {
+        emitBedStatusChange({
+          bedId,
+          status: BedStatus.AVAILABLE,
+          lockedById: null,
+          lockedUntil: null,
+        });
+      }
+
+      return result;
+    } catch (error) {
+      console.error('Error making occupied bed available:', error);
+      return { success: false, message: 'Failed to make bed available.' };
+    }
   }
 
   async releaseExpiredLocks(): Promise<void> {

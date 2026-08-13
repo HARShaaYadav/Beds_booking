@@ -36,6 +36,12 @@ export default function RootLayout({
                 {/* Navigation */}
                 <nav className="hidden md:flex items-center space-x-1">
                   <Link
+                    href="/login"
+                    className="px-4 py-2 rounded-lg text-gray-700 hover:text-sky-600 hover:bg-sky-50 font-medium transition-all duration-200"
+                  >
+                    Sign in
+                  </Link>
+                  <Link
                     href="/dashboard"
                     className="px-4 py-2 rounded-lg text-gray-700 hover:text-sky-600 hover:bg-sky-50 font-medium transition-all duration-200"
                   >

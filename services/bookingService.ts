@@ -2,6 +2,7 @@ import { prisma } from '@/lib/prisma';
 import { BedStatus, BookingStatus, Prisma } from '@prisma/client';
 import { BookingWithDetails, ConfirmBookingResponse } from '@/types/booking';
 import { emitBedStatusChange } from '@/lib/socket';
+import { enqueueAuditLog } from '@/lib/queue';
 
 export class BookingService {
   async confirmBooking(
@@ -23,7 +24,7 @@ export class BookingService {
           return { success: false, message: 'Booking not found.' };
         }
 
-        // Verify ownership
+        // Verify ownership - CRITICAL: Never trust frontend userId
         if (booking.bookedById !== userId) {
           return { success: false, message: 'You do not own this booking.' };
         }
@@ -62,7 +63,7 @@ export class BookingService {
         await tx.bed.update({
           where: { id: booking.bedId },
           data: {
-            status: BedStatus.BOOKED,
+            status: BedStatus.OCCUPIED,
             patientId,
             lockedById: null,
             lockedUntil: null,
@@ -74,15 +75,26 @@ export class BookingService {
           data: {
             bedId: booking.bedId,
             oldStatus: BedStatus.LOCKED,
-            newStatus: BedStatus.BOOKED,
+            newStatus: BedStatus.OCCUPIED,
             changedById: userId,
           },
         });
 
         return { success: true, bookingId };
+      }, {
+        isolationLevel: 'Serializable',
       });
 
       if (result.success) {
+        // Enqueue audit log
+        enqueueAuditLog({
+          userId,
+          action: 'BOOKING_CONFIRMED',
+          resource: 'Booking',
+          resourceId: bookingId,
+          metadata: { patientId },
+        });
+
         const booking = await prisma.booking.findUnique({
           where: { id: bookingId },
           include: { bed: true },
@@ -91,7 +103,7 @@ export class BookingService {
         if (booking) {
           emitBedStatusChange({
             bedId: booking.bedId,
-            status: BedStatus.BOOKED,
+            status: BedStatus.OCCUPIED,
             lockedById: null,
             lockedUntil: null,
           });
@@ -100,7 +112,6 @@ export class BookingService {
 
       return result;
     } catch (error) {
-      console.error('Error confirming booking:', error);
       return { success: false, message: 'Failed to confirm booking.' };
     }
   }
@@ -161,11 +172,21 @@ export class BookingService {
         });
 
         return { success: true };
+      }, {
+        isolationLevel: 'Serializable',
       });
+
+      if (result.success) {
+        enqueueAuditLog({
+          userId,
+          action: 'BOOKING_CANCELLED',
+          resource: 'Booking',
+          resourceId: bookingId,
+        });
+      }
 
       return result;
     } catch (error) {
-      console.error('Error cancelling booking:', error);
       return { success: false, message: 'Failed to cancel booking.' };
     }
   }

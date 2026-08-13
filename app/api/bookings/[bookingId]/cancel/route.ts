@@ -1,10 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { bookingService } from '@/services/bookingService';
-import { z } from 'zod';
-
-const cancelRequestSchema = z.object({
-  userId: z.string().min(1, 'User ID is required'),
-});
+import { getCurrentUser } from '@/lib/auth';
 
 export async function POST(
   request: NextRequest,
@@ -12,18 +8,8 @@ export async function POST(
 ) {
   try {
     const { bookingId } = await params;
-    const body = await request.json();
-    
-    const validation = cancelRequestSchema.safeParse(body);
-    if (!validation.success) {
-      return NextResponse.json(
-        { success: false, message: validation.error.issues[0].message },
-        { status: 400 }
-      );
-    }
-
-    const { userId } = validation.data;
-    const result = await bookingService.cancelBooking(bookingId, userId);
+    const user = await getCurrentUser();
+    const result = await bookingService.cancelBooking(bookingId, user.id);
 
     if (!result.success) {
       return NextResponse.json(result, { status: 400 });
@@ -32,6 +18,12 @@ export async function POST(
     return NextResponse.json(result);
   } catch (error) {
     console.error('Error cancelling booking:', error);
+    if (error instanceof Error && error.message === 'User not authenticated') {
+      return NextResponse.json(
+        { success: false, message: 'Please sign in before cancelling a booking.' },
+        { status: 401 }
+      );
+    }
     return NextResponse.json(
       { success: false, message: 'Failed to cancel booking' },
       { status: 500 }
