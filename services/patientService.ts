@@ -23,6 +23,7 @@ export class PatientService {
         id: true,
         name: true,
         phone: true,
+        mrn: true,
         dateOfBirth: true,
         gender: true,
       },
@@ -47,6 +48,11 @@ export class PatientService {
         phone: data.phone,
         dateOfBirth: new Date(data.dateOfBirth),
         gender: data.gender,
+        mrn: data.mrn ?? undefined,
+        bloodGroup: data.bloodGroup ?? undefined,
+        allergies: data.allergies ?? undefined,
+        isolationRequired: data.isolationRequired ?? undefined,
+        criticality: data.criticality ?? undefined,
       },
     });
 

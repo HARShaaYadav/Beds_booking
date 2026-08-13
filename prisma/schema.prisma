@@ -84,6 +84,13 @@ enum ICUWaitlistStatus {
   EXPIRED
 }
 
+enum CriticalityLevel {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
 enum NotificationType {
   ICU_BED_AVAILABLE
 }
@@ -161,6 +168,11 @@ model Patient {
   id          String   @id @default(uuid())
   name        String
   phone       String
+  mrn         String?  @unique
+  bloodGroup  String?
+  allergies   String[] @default([])
+  isolationRequired Boolean @default(false)
+  criticality CriticalityLevel @default(MEDIUM)
   dateOfBirth DateTime
   gender      String
   createdAt   DateTime @default(now())

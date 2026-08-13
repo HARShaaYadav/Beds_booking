@@ -1,21 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { enqueueAuditLog } from '@/lib/queue';
-
-let disasterMode = false;
+import { isDisasterMode, setDisasterMode, getOverflowWards } from '@/lib/disaster';
+import { requireRole } from '@/lib/auth';
 
 export async function POST(request: NextRequest) {
   try {
+    await requireRole('ADMIN');
     const body = await request.json();
     const { action, userId } = body;
     if (action === 'activate') {
-      disasterMode = true;
+      setDisasterMode(true);
       await enqueueAuditLog({ userId, action: 'DISASTER_MODE_ACTIVATED', resource: 'System', resourceId: 'disaster', metadata: {} });
-      return NextResponse.json({ success: true, disasterMode });
+      return NextResponse.json({ success: true, disasterMode: isDisasterMode(), overflowWards: getOverflowWards() });
     }
     if (action === 'deactivate') {
-      disasterMode = false;
+      setDisasterMode(false);
       await enqueueAuditLog({ userId, action: 'DISASTER_MODE_DEACTIVATED', resource: 'System', resourceId: 'disaster', metadata: {} });
-      return NextResponse.json({ success: true, disasterMode });
+      return NextResponse.json({ success: true, disasterMode: isDisasterMode(), overflowWards: getOverflowWards() });
     }
     return NextResponse.json({ success: false, message: 'Unknown action' }, { status: 400 });
   } catch (error) {
@@ -25,5 +26,5 @@ export async function POST(request: NextRequest) {
 }
 
 export function GET() {
-  return NextResponse.json({ success: true, disasterMode });
+  return NextResponse.json({ success: true, disasterMode: isDisasterMode(), overflowWards: getOverflowWards() });
 }
